@@ -1,7 +1,7 @@
 #include "my-ppm.h"
 
 void
-output_pgm(FILE *stream, int **pgm, int width, int height)
+output_pgm(FILE *stream, int width, int height, int pgm[height][width])
 {
     int i, j;
 
