@@ -17,6 +17,6 @@ main(void)
     }
     /* Start with a completely random state for the minute */
     srandomdev();
-    generate_samples(512, 512, landscape, 20);
+    generate_samples(512, 512, landscape, 10);
     output_pgm(stderr, 512, 512, landscape);
 }
