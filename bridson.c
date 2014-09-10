@@ -4,19 +4,13 @@
 #include <sys/queue.h>
 #include <math.h>
 
+#include "landscape.h"
+
 #ifdef DEBUG_OUTPUT
 #define debug printf
 #else
 #define debug(...)
 #endif
-
-/* We need to keep track of active vs inactive points */
-typedef struct { int x; int y; } point;
-struct pq_entry { point p; TAILQ_ENTRY(pq_entry) entries; };
-struct pq_entry *np;
-
-/* Utilise the magic BSD list macros to save sanity */
-TAILQ_HEAD(point_queue, point) pq;
 
 int
 random_under(int max)
@@ -44,28 +38,30 @@ new_random_point(int width, int height)
 }
 
 void
-generate_samples(int width, int height, int output[height][width], int annulus)
+generate_samples(int width, int height, struct active_h *p_active, struct inactive_h *p_inactive, int annulus)
 {
     int howmany_active = 0;
     struct pq_entry *np;
 
-    TAILQ_HEAD(active_h, pq_entry) active = TAILQ_HEAD_INITIALIZER(active);
-    TAILQ_HEAD(inactive_h, pq_entry) inactive = TAILQ_HEAD_INITIALIZER(inactive);
-
-    TAILQ_INIT(&active);
-
-    /* We start with a single random active point */
-    struct pq_entry *f = new_random_point(width, height);
-    TAILQ_INSERT_HEAD(&active, f, entries);
-    howmany_active = 1;
+    if (TAILQ_EMPTY(p_active)) {
+        /* We start with a single random active point */
+        struct pq_entry *f = new_random_point(width, height);
+        TAILQ_INSERT_HEAD(p_active, f, entries);
+        howmany_active = 1;
+    }
+    else {
+        TAILQ_FOREACH(np, p_active, entries) {
+            howmany_active++;
+        }
+    }
 
     /* And then we run until we have no more active points */
-    while ( ! TAILQ_EMPTY(&active) ) {
+    while ( ! TAILQ_EMPTY(p_active) ) {
         /* Pick a random point on the active list */
         int random_active = random_under(howmany_active), i=0;
         struct pq_entry *live;
 
-        TAILQ_FOREACH(np, &active, entries) {
+        TAILQ_FOREACH(np, p_active, entries) {
             if (i == random_active) { live = np; break; }
             i++;
         }
@@ -90,7 +86,7 @@ generate_samples(int width, int height, int output[height][width], int annulus)
                 int safe_distance_count = 0;
                 int tested_points = 0;
 
-                TAILQ_FOREACH(np, &active, entries) {
+                TAILQ_FOREACH(np, p_active, entries) {
                     int tx = np->p.x, ty = np->p.y;
                     int d = (tx-cx)*(tx-cx) + (ty-cy)*(ty-cy);
 debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, tx-cx,ty-cy);
@@ -103,7 +99,7 @@ debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, 
                     tested_points++;
                 }
 
-                TAILQ_FOREACH(np, &inactive, entries) {
+                TAILQ_FOREACH(np, p_inactive, entries) {
                     int tx = np->p.x, ty = np->p.y;
                     int d = (tx-cx)*(tx-cx) + (ty-cy)*(ty-cy);
 debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, tx-cx,ty-cy);
@@ -124,7 +120,7 @@ debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, 
                     found_one = 1;
                     debug("GP %i <%d,%d> parent=<%d,%d> ACCEPTED\n", i, cx, cy, ax, ay);
                     i = 31;
-                    TAILQ_INSERT_TAIL(&active, f, entries);
+                    TAILQ_INSERT_TAIL(p_active, f, entries);
                     howmany_active++;
                     break;
                 }
@@ -133,17 +129,10 @@ debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, 
 
         if (! found_one) {
             debug("IN parent <%d,%d> no candidates DEACTIVATED\n", ax,ay);
-            TAILQ_REMOVE(&active, live, entries);
-            TAILQ_INSERT_HEAD(&inactive, live, entries);
+            TAILQ_REMOVE(p_active, live, entries);
+            TAILQ_INSERT_HEAD(p_inactive, live, entries);
             howmany_active--;
         }
         debug("HA %d\n", howmany_active);
     }
-
-    /* Convert the list of inactive points into dots on our canvas */
-    TAILQ_FOREACH(np, &inactive, entries) {
-        int x = np->p.x, y = np->p.y;
-        output[y][x] = 255;
-    }
 }
-
