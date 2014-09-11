@@ -125,7 +125,7 @@ new_point(int x, int y, double z)
 {
     struct pq_entry *f = malloc(sizeof(struct pq_entry));
 
-    f->p.x = x; f->p.y = y; f->p.z = z;
+    f->p.x = x; f->p.y = y; f->p.z = z; f->p.c = (rgb){-1,-1,-1};
 
     return f;
 }
