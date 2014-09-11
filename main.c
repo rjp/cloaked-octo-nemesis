@@ -18,7 +18,7 @@ rgb colour_blue  = { 0,0,255 };
 rgb colour_yellow = { 255,255,0 };
 
 rgb
-greyscale(int z, int max_z)
+greyscale(double z, int max_z)
 {
     int g = (255*z)/max_z;
     return (rgb){ g,g,g };

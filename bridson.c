@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/queue.h>
 #include <math.h>
+#include <assert.h>
 
 #include "landscape.h"
 
@@ -55,24 +56,26 @@ void
 interpolate_height(point *p, struct active_h *p_active, struct inactive_h *p_inactive)
 {
     int count = find_nearest(p->x, p->y, p_active, p_inactive);
-    int i;
+    int i, lim = (count > 10) ? 10 : count;
     double dsq[20], total_d = 0.0, scaled_height = 0.0;
 
-    for (i=0; i<10; i++) {
+    for (i=0; i<lim; i++) {
         double d = buffer[i].d;
         if (d > 0.0) { /* NAN ALERT */
             double dr2 = 1.0 / pow(d, 2);
+            double scaled = dr2 * buffer[i].p.z;
             total_d += dr2;
-            scaled_height += dr2 * buffer[i].p.z;
+            scaled_height += scaled;
+            printf("I+ <%d,%d,%.2f> d=%.2f r=%.3f s=%.3f\n", buffer[i].p.x, buffer[i].p.y, buffer[i].p.z, d, dr2, scaled);
         }
         else {
             dsq[i] = 0.0;
         }
     }
 
-    p->z = (int) (scaled_height / total_d);
+    p->z = scaled_height / total_d;
 
-    printf("IH <%d,%d> interpolated height %d\n",p->x,p->y,p->z);
+    printf("IH <%d,%d> interpolated height %.2f\n",p->x,p->y,p->z);
 }
 
 int
@@ -83,7 +86,7 @@ random_under(int max)
 }
 
 struct pq_entry *
-new_point(int x, int y, int z)
+new_point(int x, int y, double z)
 {
     struct pq_entry *f = malloc(sizeof(struct pq_entry));
 
@@ -92,13 +95,23 @@ new_point(int x, int y, int z)
     return f;
 }
 
+double
+random_clamp(int min, int max)
+{
+    double n = random();
+    double n_scaled = n / (RAND_MAX+1.0);
+    double n_offset = n_scaled * (max-min);
+
+    return n_offset + min;
+}
+
 struct pq_entry *
-new_random_point(int width, int height, int elevation)
+new_random_point(int width, int height, double elevation)
 {
     int first_x = random_under(width), first_y = random_under(height);
-    int first_z = random_under(elevation);
+    int first_z = random_clamp(0, elevation);
 
-    return new_point(first_x, first_y, elevation);
+    return new_point(first_x, first_y, first_z);
 }
 
 void
@@ -109,7 +122,7 @@ generate_samples(int width, int height, struct active_h *p_active, struct inacti
 
     if (TAILQ_EMPTY(p_active)) {
         /* We start with a single random active point */
-        struct pq_entry *f = new_random_point(width, height, annulus);
+        struct pq_entry *f = new_random_point(width, height, (double)annulus);
         TAILQ_INSERT_HEAD(p_active, f, entries);
         howmany_active = 1;
     }
@@ -181,22 +194,22 @@ debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, 
                  */
                 if (safe_distance_count == tested_points) {
                     /* New points get the same height as the old one for now */
-                    int new_height = live->p.z;
+                    double new_height = live->p.z;
                     struct pq_entry *f = new_point(cx, cy, new_height);
 
-                    printf("GP %i <%d,%d,%d>/a=%d/i=%d parent=<%d,%d> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay);
+                    printf("GP %i <%d,%d,%.2f>/a=%d/i=%d parent=<%d,%d> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay);
 
                     if (interpolating) {
                         interpolate_height(&(f->p), p_active, p_inactive);
                     }
 
-                    f->p.z += random_under(annulus/2) - (annulus/4);
+                    f->p.z += random_clamp(-(annulus/2), annulus/2);
 
-                    if (f->p.z < 0) { f->p.z = 0; }
-                    if (f->p.z > 50) { f->p.z = 50; }
+                    if (f->p.z < 0.0) { f->p.z = 0.0; }
+                    if (f->p.z > 50.0) { f->p.z = 50.0; }
 
                     found_one = 1;
-                    printf("GP %i <%d,%d,%d>/a=%d/i=%d parent=<%d,%d> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay);
+                    printf("GP %i <%d,%d,%.2f>/a=%d/i=%d parent=<%d,%d> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay);
                     i = 31;
                     TAILQ_INSERT_TAIL(p_active, f, entries);
                     howmany_active++;
