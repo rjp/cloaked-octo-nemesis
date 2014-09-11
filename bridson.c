@@ -12,6 +12,69 @@
 #define debug(...)
 #endif
 
+/* 8k points should be enough as a buffer */
+
+typedef struct { point p; int d; } buffer_entry;
+buffer_entry buffer[8192];
+
+int
+sort_by_dist(const void *a, const void *b)
+{
+    buffer_entry *ba = (buffer_entry *)a;
+    buffer_entry *bb = (buffer_entry *)b;
+
+    return ba->d - bb->d;
+}
+
+int
+find_nearest(int x, int y, struct active_h *p_active, struct inactive_h *p_inactive)
+{
+    int i = 0;
+
+    /* First we stuff the points from the linked lists into the buffer */
+    TAILQ_FOREACH(np, p_active, entries) {
+        int tx = np->p.x, ty = np->p.y;
+        int d = (tx-x)*(tx-x) + (ty-y)*(ty-y);
+        buffer[i] = (buffer_entry){ np->p, d };
+        i++;
+    }
+
+    TAILQ_FOREACH(np, p_inactive, entries) {
+        int tx = np->p.x, ty = np->p.y;
+        int d = (tx-x)*(tx-x) + (ty-y)*(ty-y);
+        buffer[i] = (buffer_entry){ np->p, d };
+        i++;
+    }
+
+    qsort(buffer, i, sizeof(buffer_entry), sort_by_dist);
+
+    return i;
+}
+
+void
+interpolate_height(point *p, struct active_h *p_active, struct inactive_h *p_inactive)
+{
+    int count = find_nearest(p->x, p->y, p_active, p_inactive);
+    int i;
+    double dsq[20], total_d = 0.0, scaled_height = 0.0;
+
+    for (i=0; i<10; i++) {
+        double d = buffer[i].d;
+        if (d > 0.0) { /* NAN ALERT */
+            double dr2 = 1.0 / pow(d, 2);
+            total_d += dr2;
+            scaled_height += dr2 * buffer[i].p.z;
+        }
+        else {
+            dsq[i] = 0.0;
+        }
+    }
+
+    p->z = (int) (scaled_height / total_d);
+
+    printf("IH <%d,%d> interpolated height %d\n",p->x,p->y,p->z);
+}
+
 int
 random_under(int max)
 {
@@ -20,32 +83,33 @@ random_under(int max)
 }
 
 struct pq_entry *
-new_point(int x, int y)
+new_point(int x, int y, int z)
 {
     struct pq_entry *f = malloc(sizeof(struct pq_entry));
 
-    f->p.x = x; f->p.y = y;
+    f->p.x = x; f->p.y = y; f->p.z = z;
 
     return f;
 }
 
 struct pq_entry *
-new_random_point(int width, int height)
+new_random_point(int width, int height, int elevation)
 {
     int first_x = random_under(width), first_y = random_under(height);
+    int first_z = random_under(elevation);
 
-    return new_point(first_x, first_y);
+    return new_point(first_x, first_y, elevation);
 }
 
 void
-generate_samples(int width, int height, struct active_h *p_active, struct inactive_h *p_inactive, int annulus)
+generate_samples(int width, int height, struct active_h *p_active, struct inactive_h *p_inactive, int annulus, int interpolating)
 {
     int howmany_active = 0;
     struct pq_entry *np;
 
     if (TAILQ_EMPTY(p_active)) {
         /* We start with a single random active point */
-        struct pq_entry *f = new_random_point(width, height);
+        struct pq_entry *f = new_random_point(width, height, annulus);
         TAILQ_INSERT_HEAD(p_active, f, entries);
         howmany_active = 1;
     }
@@ -116,9 +180,23 @@ debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, 
                  * existing points we have, keep it
                  */
                 if (safe_distance_count == tested_points) {
-                    struct pq_entry *f = new_point(cx, cy);
+                    /* New points get the same height as the old one for now */
+                    int new_height = live->p.z;
+                    struct pq_entry *f = new_point(cx, cy, new_height);
+
+                    printf("GP %i <%d,%d,%d>/a=%d/i=%d parent=<%d,%d> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay);
+
+                    if (interpolating) {
+                        interpolate_height(&(f->p), p_active, p_inactive);
+                    }
+
+                    f->p.z += random_under(annulus/2) - (annulus/4);
+
+                    if (f->p.z < 0) { f->p.z = 0; }
+                    if (f->p.z > 50) { f->p.z = 50; }
+
                     found_one = 1;
-                    debug("GP %i <%d,%d> parent=<%d,%d> ACCEPTED\n", i, cx, cy, ax, ay);
+                    printf("GP %i <%d,%d,%d>/a=%d/i=%d parent=<%d,%d> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay);
                     i = 31;
                     TAILQ_INSERT_TAIL(p_active, f, entries);
                     howmany_active++;
