@@ -1,5 +1,8 @@
 #ifndef __BRIDSON_H
 #define __BRIDSON_H 1
+#include <sys/queue.h>
 
-void generate_samples(int width, int height, int output[height][width], int annulus);
+#include "landscape.h"
+
+void generate_samples(int width, int height, struct active_h *active, struct inactive_h *inactive, double annulus, int interpolating, int generation);
 #endif
