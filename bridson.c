@@ -144,7 +144,7 @@ struct pq_entry *
 new_random_point(int width, int height, double elevation)
 {
     int first_x = random_under(width), first_y = random_under(height);
-    double first_z = 0.3 + 0.3*m1_p1();
+    double first_z = 0.3*m1_p1();
 if(first_z < 0.0) { first_z = 0.0; }
 if(first_z > 1.0) { first_z = 1.0; }
 
@@ -157,6 +157,7 @@ generate_samples(int width, int height, struct active_h *p_active, struct inacti
     int howmany_active = 0;
     struct pq_entry *np;
     double reduction = pow(0.5, generation);
+    int sqA = annulus*annulus;
 
     if (TAILQ_EMPTY(p_active)) {
         /* We start with a single random active point */
@@ -235,11 +236,18 @@ debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, 
                  * existing points we have, keep it
                  */
                 if (safe_distance_count == tested_points) {
-                    /* New points get the same height as the old one for now */
-                    double new_height = live->p.z + reduction*0.05*m1_p1(); // live->p.z;
+                    /* Jitter new points by a scalable amount based on the
+                     * distance from the old one - further is bigger.
+                     */
+                    double jitter = reduction*0.06*m1_p1(); // live->p.z;
+                    double d = (ax-cx)*(ax-cx) + (ay-cy)*(ay-cy);
+                    double ratio = d / sqA;
+                    double scale = (ratio / 6);
+                    double new_height = live->p.z + scale*jitter;
+
                     struct pq_entry *f = new_point(cx, cy, new_height);
 
-                    printf("GP %i <%d,%d,%.2f>/a=%.2f/i=%d parent=<%d,%d,%.2f> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay, live->p.z);
+                    printf("GP %i <%d,%d,%.2f>/a=%.2f/d=%.2f/r=%.3f/s=%.3f parent=<%d,%d,%.2f> ACCEPTED\n", i, cx, cy, f->p.z, annulus, d, ratio, scale, ax, ay, live->p.z);
 
                     if (f->p.z < -1.0) { f->p.z = -1.0; debug("CLAMPED\n");}
                     if (f->p.z > 1.0) { f->p.z = 1.0; }
