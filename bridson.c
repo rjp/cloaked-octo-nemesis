@@ -136,12 +136,15 @@ generate_samples(int width, int height, struct active_h *p_active, struct inacti
     while ( ! TAILQ_EMPTY(p_active) ) {
         /* Pick a random point on the active list */
         int random_active = random_under(howmany_active), i=0;
-        struct pq_entry *live;
+        struct pq_entry *live = NULL;
 
         TAILQ_FOREACH(np, p_active, entries) {
             if (i == random_active) { live = np; break; }
             i++;
         }
+
+        assert(live != NULL);
+
         debug("LP %d/%d <%d,%d>\n", random_active, howmany_active, live->p.x, live->p.y);
         int ax = live->p.x, ay = live->p.y;
 
