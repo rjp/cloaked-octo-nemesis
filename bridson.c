@@ -236,19 +236,11 @@ debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, 
                  */
                 if (safe_distance_count == tested_points) {
                     /* New points get the same height as the old one for now */
-                    double new_height = live->p.z + reduction*0.025*m1_p1(); // live->p.z;
+                    double new_height = live->p.z + reduction*0.05*m1_p1(); // live->p.z;
                     struct pq_entry *f = new_point(cx, cy, new_height);
 
                     printf("GP %i <%d,%d,%.2f>/a=%.2f/i=%d parent=<%d,%d,%.2f> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay, live->p.z);
 
-                    if (interpolating) {
-                        interpolate_height(&(f->p), p_active, p_inactive);
-                    }
-
-                    double offset = reduction * 0.05 * m1_p1();
-                    printf("GP %.3f\n", offset);
-
-                    f->p.z += offset;
 
                     if (f->p.z < 0.0) { f->p.z = 0.0; debug("CLAMPED\n");}
                     if (f->p.z > 1.0) { f->p.z = 1.0; }
