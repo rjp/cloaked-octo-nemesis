@@ -2,9 +2,10 @@
 #define __LANDSCAPE_H 1
 
 #include <sys/queue.h>
+#include "colour.h"
 
 /* We need to keep track of active vs inactive points */
-typedef struct { int x; int y; double z; } point;
+typedef struct { int x; int y; double z; rgb c; } point;
 struct pq_entry { point p; TAILQ_ENTRY(pq_entry) entries; };
 struct pq_entry *np, *np_temp;
 
