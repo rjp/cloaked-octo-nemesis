@@ -25,7 +25,7 @@ greyscale(double z, int max_z)
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
     int i,j;
     double max_val = 1.0;
@@ -35,8 +35,16 @@ main(void)
             canvas[i][j] = colour_black;
         }
     }
-    /* Start with a completely random state for the minute */
-    srandomdev();
+
+    if (argc > 1) {
+        unsigned long seed = atol(argv[1]);
+        printf("SEEDING %ld\n", seed);
+        srandom(seed);
+    }
+    else {
+        /* Start with a completely random state */
+        srandomdev();
+    }
 
     /* Initialise our lists */
     TAILQ_INIT(&active);
