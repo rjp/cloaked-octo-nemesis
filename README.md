@@ -1,4 +1,15 @@
-cloaked-octo-nemesis
-====================
+# Poisson Disk landscape
 
-Generating a "fractal" landscape from a Bridson Poisson Disc sample set. IYKWIM.
+## Example output
+
+### A nice coastline
+
+![](examples/coastline.png)
+
+### Plains
+
+![](examples/plains.png)
+
+### An island with a lake
+
+![](examples/island-lake.png)
