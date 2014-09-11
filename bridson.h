@@ -4,5 +4,5 @@
 
 #include "landscape.h"
 
-void generate_samples(int width, int height, struct active_h *active, struct inactive_h *inactive, int annulus, int interpolating);
+void generate_samples(int width, int height, struct active_h *active, struct inactive_h *inactive, double annulus, int interpolating, int generation);
 #endif

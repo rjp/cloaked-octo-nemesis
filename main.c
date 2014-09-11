@@ -28,7 +28,9 @@ int
 main(void)
 {
     int i,j;
-    int max_val = 40 + (40/2);
+    double max_val = 1.0;
+    double generation = 40;
+    int gen_count = 0;
 
     for(i=0; i<512; i++) {
         for(j=0; j<512; j++) {
@@ -43,31 +45,37 @@ main(void)
     TAILQ_INIT(&inactive);
 
     /* First we generate a coarse red grid */
-    generate_samples(512, 512, &active, &inactive, 40, 0);
+    generate_samples(512, 512, &active, &inactive, 40, 0, 0);
 
-    TAILQ_FOREACH_SAFE(np, &inactive, entries, np_temp) {
-        /* canvas[np->p.y][np->p.x] = colour_red; */
-        canvas[np->p.y][np->p.x] = greyscale(np->p.z, max_val);
-        TAILQ_INSERT_HEAD(&active, np, entries);
-        TAILQ_REMOVE(&inactive, np, entries);
+    while (generation > 49.0) {
+        double min_height = 99999.0, max_height = -99999.0;
+        generation = generation * 0.75;
+        gen_count++;
+
+        printf("g=%.2f AC=%d IN=%d\n", generation, TAILQ_EMPTY(&active), TAILQ_EMPTY(&inactive));
+
+        TAILQ_FOREACH(np, &inactive, entries) {
+            if (np->p.z < min_height) { min_height = np->p.z; }
+            if (np->p.z > max_height) { max_height = np->p.z; }
+        }
+        TAILQ_CONCAT(&active, &inactive, entries);
+
+        printf("AC=%d IN=%d\n", TAILQ_EMPTY(&active), TAILQ_EMPTY(&inactive));
+
+        printf("MIN:MAX = %.3f, %.3f\n", min_height, max_height);
+
+        generate_samples(512, 512, &active, &inactive, generation, 1, gen_count);
     }
-
-    generate_samples(512, 512, &active, &inactive, 20, 1);
-
-    TAILQ_FOREACH_SAFE(np, &inactive, entries, np_temp) {
-        /* canvas[np->p.y][np->p.x] = colour_green; */
-        canvas[np->p.y][np->p.x] = greyscale(np->p.z, max_val);
-        TAILQ_INSERT_HEAD(&active, np, entries);
-        TAILQ_REMOVE(&inactive, np, entries);
-    }
-
-    generate_samples(512, 512, &active, &inactive, 10, 1);
 
     point buffer[8192];
+    double min_height = 99999.0, max_height = -99999.0;
+
     TAILQ_FOREACH_SAFE(np, &inactive, entries, np_temp) {
-        canvas[np->p.y][np->p.x] = greyscale(np->p.z, max_val);
+    //    canvas[np->p.y][np->p.x] = greyscale(np->p.z, max_val);
         buffer[i] = np->p;
         i++;
+        if (np->p.z < min_height) { min_height = np->p.z; }
+        if (np->p.z > max_height) { max_height = np->p.z; }
     }
     int howmany = i;
 
@@ -82,9 +90,10 @@ main(void)
                     min = d; mp = buffer[q];
                 }
             }
-            canvas[i][j] = greyscale(mp.z, max_val);
+            canvas[i][j] = colour_by_height(mp.z / max_val);
         }
     }
 
     output_ppm(stderr, 512, 512, canvas);
+    printf("heights = %.3f to %.3f (%.3f to %.3f)\n", min_height, max_height, min_height / max_val, max_height / max_val);
 }
