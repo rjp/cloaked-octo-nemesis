@@ -78,6 +78,7 @@ main(void)
         if (np->p.z > max_height) { max_height = np->p.z; }
     }
     int howmany = i;
+    int last_point;
 
     for(i=0; i<512; i++) {
         for(j=0; j<512; j++) {
@@ -87,10 +88,17 @@ main(void)
                 int px = buffer[q].x, py = buffer[q].y;
                 int d = (px-j)*(px-j) + (py-i)*(py-i);
                 if (d < min) {
-                    min = d; mp = buffer[q];
+                    min = d; mp = buffer[q]; last_point = q;
                 }
             }
-            canvas[i][j] = colour_by_height(mp.z / max_val);
+            if (mp.c.r == -1) { // no assigned colour
+                buffer[last_point].c = colour_by_height(mp.z / max_val);
+                canvas[i][j] = buffer[last_point].c;
+                printf("C for <%d,%d> is {%d,%d,%d}\n", buffer[last_point].x, buffer[last_point].y, buffer[last_point].c.r, buffer[last_point].c.g, buffer[last_point].c.b);
+            }
+            else {
+                canvas[i][j] = mp.c;
+            }
         }
     }
 
