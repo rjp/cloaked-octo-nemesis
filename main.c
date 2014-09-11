@@ -45,7 +45,7 @@ main(void)
     TAILQ_INIT(&inactive);
 
     /* First we generate a coarse red grid */
-    generate_samples(512, 512, &active, &inactive, 40, 0, 0);
+    generate_samples(512, 512, &active, &inactive, 8, 0, 0);
 
     while (generation > 49.0) {
         double min_height = 99999.0, max_height = -99999.0;
