@@ -17,3 +17,7 @@ Can we generate a convincing simula of a 'fractal landscape' using [Bridson's al
 ### An island with a lake
 
 ![](examples/island-lake.png)
+
+## Future
+
+[Scalloped optimisation](http://www.cs.virginia.edu/~gfx/pubs/antimony/antimony.pdf)
