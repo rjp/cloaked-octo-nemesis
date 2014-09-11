@@ -17,4 +17,6 @@ TAILQ_HEAD(inactive_h, pq_entry);
 
 extern struct active_h active;
 extern struct inactive_h inactive;
+
+extern double m1_p1(void);
 #endif
