@@ -63,10 +63,27 @@ main(void)
 
     generate_samples(512, 512, &active, &inactive, 10, 1);
 
+    point buffer[8192];
     TAILQ_FOREACH_SAFE(np, &inactive, entries, np_temp) {
         canvas[np->p.y][np->p.x] = greyscale(np->p.z, max_val);
-        TAILQ_INSERT_HEAD(&active, np, entries);
-        TAILQ_REMOVE(&inactive, np, entries);
+        buffer[i] = np->p;
+        i++;
+    }
+    int howmany = i;
+
+    for(i=0; i<512; i++) {
+        for(j=0; j<512; j++) {
+            double min = 512*512*2;
+            point mp = {};
+            for(int q=0; q<howmany; q++) {
+                int px = buffer[q].x, py = buffer[q].y;
+                int d = (px-j)*(px-j) + (py-i)*(py-i);
+                if (d < min) {
+                    min = d; mp = buffer[q];
+                }
+            }
+            canvas[i][j] = greyscale(mp.z, max_val);
+        }
     }
 
     output_ppm(stderr, 512, 512, canvas);
