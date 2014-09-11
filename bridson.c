@@ -241,8 +241,7 @@ debug("DD %d/%d <%d,%d> = <%d,%d> (%d,%d)\n", d, annulus*annulus, cx,cy, ax,ay, 
 
                     printf("GP %i <%d,%d,%.2f>/a=%.2f/i=%d parent=<%d,%d,%.2f> ACCEPTED\n", i, cx, cy, f->p.z, annulus, interpolating, ax, ay, live->p.z);
 
-
-                    if (f->p.z < 0.0) { f->p.z = 0.0; debug("CLAMPED\n");}
+                    if (f->p.z < -1.0) { f->p.z = -1.0; debug("CLAMPED\n");}
                     if (f->p.z > 1.0) { f->p.z = 1.0; }
 
                     found_one = 1;
