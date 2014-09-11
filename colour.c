@@ -7,6 +7,7 @@ rgb c_water = { 0, 0, 255 };
 rgb c_grass = { 0, 255, 0 };
 rgb c_stone = { 128, 128, 128 };
 rgb c_snow = { 255, 255, 255 };
+rgb c_dirt = { 128, 64, 0 };
 
 int
 clamp_byte(int v)
@@ -61,6 +62,10 @@ colour_by_height(double scaled_height)
 
     if (scaled_height > 0.70) {
         return twiddle(c_stone, 1, 32);
+    }
+
+    if (scaled_height> 0.60) {
+        return twiddle(c_dirt, 1, 16);
     }
 
     return twiddle(c_grass, 0, 24);
